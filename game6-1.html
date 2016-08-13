@@ -1,0 +1,512 @@
+<!doctype html>
+<html>
+	<head>
+		<meta charset="UTF-8" />
+		<title>Organize by item -1</title>
+		<script src="//cdn.jsdelivr.net/phaser/2.5.0/phaser.min.js"></script>
+		<script type="text/javascript" src="http://cdn.robotwebtools.org/EventEmitter2/current/eventemitter2.min.js"></script>
+		<script type="text/javascript" src="http://cdn.robotwebtools.org/roslibjs/current/roslib.min.js"></script>
+		<style>
+        body{
+            width: 100%;
+            height: 100%;
+            padding: 0px;
+            margin: 0px;
+        }
+        </style>
+	</head>
+		
+		<body>
+	
+			<script type = "text/javascript">
+			
+			
+				window.onload = function(){
+					const OBJECT_AMOUNT = 9;
+					const COLUMNS_PANEL = 3;
+					const SAME_OBJECT_AMOUNT = 3;
+					var gameWidth = 1920;
+					var gameHeight = 1080;
+					var game = new Phaser.Game(window.innerWidth, window.innerHeight, Phaser.AUTO, '', { preload: preload, create: create, render: render});
+					var logoBackground;
+					
+					var onPanel;
+					var onbox1;
+					var onbox2;
+					var onbox3;
+					
+					var box1;
+					var box2;
+					var box3;
+					
+					
+					var target;
+					var attempt =0;
+					var sx = window.innerWidth/gameWidth;
+					var sy = window.innerHeight/gameHeight;
+					
+					var objectname = new Array();
+					//string array with different type of item (in term of filename : 'object1')
+					var itemType = ['object1','object2', 'object3'];
+					shuffle(itemType);
+					
+					
+					var box1CoordX = new Array();
+					var box1CoordY = new Array();
+					var box2CoordX = new Array();
+					var box2CoordY = new Array();
+					var box3CoordX = new Array();
+					var box3CoordY = new Array();
+					//create variable panel with two coordinates properties
+					var panel = {
+						CoordX : new Array(),
+						CoordY : new Array()
+					}
+					
+					// keep track of the item count using array for each box 
+					// index 0 ==> 1st item;
+					// index 1 ==> 2nd item;
+					var countBox1ItemType = [0,0,0];
+					
+					var countBox2ItemType = [0,0,0];
+					
+					var countBox3ItemType= [0,0,0];
+					
+					
+					var num_type1 =0;
+					var num_type2 =0;
+					var num_type3 =0;
+					
+					
+					function preload(){
+					
+						var path_to_assets='assets/';
+						game.load.image('logoBackground', 'assets/Background/ShipInterior.png');
+						game.load.image('controlPanel',path_to_assets+'Items/ControlPanelcrop.png');
+						
+						game.load.spritesheet('object1',path_to_assets+'Items/Rocks/Moonrock2_sheet.png',460,360,2);
+						game.load.spritesheet('object2',path_to_assets+'Items/Crystals/Crystal3_sheet.png',410,460,2);
+						game.load.spritesheet('object3',path_to_assets+'Items/Stars/Star2_sheet.png',410,410,2);
+						
+						
+						
+						game.load.spritesheet('button',path_to_assets+'Items/Button_sheet.png',288,288,2);
+						game.load.spritesheet('box',path_to_assets+'Items/Box_sheet.png',881,730,2);
+						
+						game.scale.scaleMode = Phaser.ScaleManager.SHOW_ALL;
+						game.scale.updateLayout();
+						
+						//event listener ???
+						
+					
+					}
+					
+					function create(){
+					
+						logoBackground = game.add.sprite(game.world.centerX, game.world.centerY, 'logoBackground');
+						logoBackground.anchor.setTo(0.5, 0.5);
+						console.log('Game width is '+game.width);
+						console.log('Game height is '+game.height);
+						
+						controlPanel = game.add.sprite(0,0,'controlPanel');
+						controlPanel.scale.setTo(0.8*sx,0.8*sy);
+						controlPanel.x = game.world.centerX - controlPanel.width/2;
+						controlPanel.y = game.world.centerY - controlPanel.height/2;
+						
+						button = game.add.sprite(0,0,'button');
+						button.scale.setTo(0.3*sx);
+						button.x = controlPanel.x+controlPanel.width/2-button.width/2;
+						button.y = controlPanel.y+controlPanel.height-button.height-0.05*game.height;
+						button.frame=0;
+						button.inputEnabled=true;
+						button.events.onInputDown.add(onButtonPress,this);
+						button.events.onInputUp.add(onButtonRelease,this);
+						
+						box1 = game.add.sprite(0,0, 'box');
+						box1.scale.setTo(0.8*sx,0.15*sy);
+						box1.x = controlPanel.x + controlPanel.width  - box1.width - 140*sx;
+						box1.y = controlPanel.y + controlPanel.height/3 - box1.height/3 - button.height - 50 *sx;
+						box1.frame = 0;
+						//Custom properties, CoordX and CoordY, added to object box1
+						box1.CoordX = new Array();
+						box1.CoordY = new Array();
+						
+						console.log('Box1 height is '+box1.height);
+						console.log('Box1 width is '+box1.width);
+						
+						box2 = game.add.sprite(0,0, 'box');
+						box2.scale.setTo(0.8*sx,0.15*sy);
+						box2.x = controlPanel.x + controlPanel.width  - box2.width - 140*sx;
+						box2.y = controlPanel.y + box1.y + 50*sx;
+						box2.frame = 0;
+						//Custom properties, CoordX and CoordY, added to object box2
+						box2.CoordX = new Array();
+						box2.CoordY = new Array();
+						console.log('Box2 height is '+box2.height);
+						console.log('Box2 width is '+box2.width);
+						
+						box3 = game.add.sprite(0,0, 'box');
+						box3.scale.setTo(0.8*sx,0.15*sy);
+						box3.x = controlPanel.x + controlPanel.width  - box3.width - 140*sx;;
+						box3.y = controlPanel.y + box2.y+ 50*sx;
+						box3.frame = 0;
+						
+						//Custom properties, CoordX and CoordY, added to object box3
+						box3.CoordX = new Array();
+						box3.CoordY = new Array();
+						console.log('Box2 height is '+box3.height);
+						console.log('Box2 width is '+box3.width);
+						
+					
+						upperLHItem1 = game.add.sprite(box1.x, box1.y, itemType[0]);
+						upperLHItem1.scale.setTo(0.1*sx,0.1*sy);
+						
+						upperLHItem2 = game.add.sprite(box2.x, box2.y, itemType[1]);
+						upperLHItem2.scale.setTo(0.1*sx,0.1*sy);
+						
+						upperLHItem3= game.add.sprite(box3.x, box3.y, itemType[2]);
+						upperLHItem3.scale.setTo(0.1*sx,0.1*sy);
+						
+						
+						
+						onPanel = game.add.group();
+						onBox1 = game.add.group();
+						onBox2 = game.add.group();
+						onBox3 = game.add.group();
+						
+						
+						// set up all the item/object on the panel
+						for (var i=0; i< SAME_OBJECT_AMOUNT ; i++){
+							objectname[i] = "object1";
+							objectname[i+3] = "object2";
+							objectname[i+6] = "object3";
+							
+						}
+						shuffle(objectname);
+						
+						//create all the object on the panel
+						for (var i=0;i<OBJECT_AMOUNT;i++){
+							//objectname = "object" + game.rnd.integerInRange(3,5);
+							panel.CoordX[i] = controlPanel.x + 220*sx +(i%COLUMNS_PANEL) * 180 *sx;
+							panel.CoordY[i] = controlPanel.y + controlPanel.height/2 - 120*sy + Math.floor(i/COLUMNS_PANEL) * 100*sy;
+							
+							onPanel.create(panel.CoordX[i], panel.CoordY[i], objectname[i]);
+						}
+						
+						//set the position in each box
+						boxCoordinates(box1.CoordX, box1.CoordY,box1);
+						boxCoordinates(box2.CoordX, box2.CoordY,box2);
+						boxCoordinates(box3.CoordX, box3.CoordY,box3);
+						
+						// assign the rock/crystal/star to an array type[0/1/2]
+						for (var i=0; i<onPanel.total ; i++){
+						
+							switch (onPanel.getChildAt(i).key){
+								
+								case itemType[0]:// let say 'object1':
+									num_type1++;
+									break;
+								case itemType[1]:
+									num_type2++;
+									break;
+								case itemType[2]:
+									num_type3++;
+									break;
+								
+							}
+						}
+
+						
+						onPanel.forEach(function(object){
+							object.anchor.setTo(0.5,0.5);
+							object.frame=0;
+							object.scale.setTo(0.25*sx);
+							object.originalPosition = object.position.clone();
+							//object.alignIn(controlPanel, Phaser.BOTTOM_LEFT, -20, -20);
+							object.inputEnabled=true;
+							object.input.enableDrag(false,false,false,255,null,controlPanel);
+							//game.add.tween(object).to( { y: 400 }, 3000, Phaser.Easing.Cubic.InOut, true, 0, Number.MAX_VALUE, true);
+							//object.input.enableSnap(130 *sx,150 *sy,false,true);
+							object.events.onDragStart.add(onDragStart,this);
+							object.events.onDragStop.add(onDragStop,this);
+							object.events.onDragUpdate.add(onDragUpdate,this);
+							
+						
+						});
+						
+						console.log(num_type1);
+						console.log(num_type2);
+						console.log(num_type3);
+						
+							
+					}
+					function outOfBox(sprite){
+						sprite.loadTexture('box');
+					
+					}
+					
+					
+					function onButtonPress(sprite,pointer){
+						sprite.frame=1;
+						checkItemType();
+					}
+					
+					function onButtonRelease(sprite,pointer){
+						sprite.frame=0;
+						resetItemCount();
+					}
+					
+					function onDragStart (sprite, pointer){
+						sprite.frame=1;
+						
+					
+					}
+					
+					function onDragStop (sprite, pointer){
+						box1.frame = 0;
+						box2.frame = 0;
+						box3.frame = 0;
+						sprite.frame = 0;
+						
+						
+						if(onBox1.total < 4 && isInside(sprite,box1) && (onPanel.removeChild(sprite) || onBox2.removeChild(sprite) || onBox3.removeChild(sprite))  ){
+							
+							onBox1.add(sprite);						
+						}
+						else if (!isInside(sprite,box1) && onBox1.removeChild(sprite))
+						{
+							onPanel.add(sprite);
+						}
+						
+						if(onBox2.total < 4 && isInside(sprite,box2 )&& (onPanel.removeChild(sprite) || onBox1.removeChild(sprite) || onBox3.removeChild(sprite))  ){
+							
+							onBox2.add(sprite);						
+						}
+						else if (!isInside(sprite,box2) && onBox2.removeChild(sprite))
+						{
+							onPanel.add(sprite);
+						}
+						
+						if(onBox3.total < 4 && isInside(sprite,box3) && (onPanel.removeChild(sprite) || onBox1.removeChild(sprite) || onBox2.removeChild(sprite))  ){
+							
+							onBox3.add(sprite);						
+						}
+						else if (!isInside(sprite,box3) && onBox3.removeChild(sprite))
+						{
+							onPanel.add(sprite);
+						}
+						
+						console.log("onPanel.total: " + onPanel.total + " onBox1.total: " + onBox1.total + " onBox2.total: " + onBox2.total + " onBox3.total: " + onBox3.total);
+						
+						
+						
+						for (var i = 0; i < onPanel.total; i++)
+						{
+							onPanel.getChildAt(i).x = panel.CoordX[i];
+							onPanel.getChildAt(i).y = panel.CoordY[i];
+						}
+						
+						for (var i = 0; i < onBox1.total; i++)
+						{
+							onBox1.getChildAt(i).x = box1.CoordX[i];
+							onBox1.getChildAt(i).y = box1.CoordY[i];
+						}
+						
+						for (var i = 0; i < onBox2.total; i++)
+						{
+							onBox2.getChildAt(i).x = box2.CoordX[i];
+							onBox2.getChildAt(i).y = box2.CoordY[i];
+						}
+						
+						for (var i = 0; i < onBox3.total; i++)
+						{
+							onBox3.getChildAt(i).x = box3.CoordX[i];
+							onBox3.getChildAt(i).y = box3.CoordY[i];
+						}
+
+						
+					}
+					
+					function onDragUpdate (sprite,pointer){
+						if (isInside(sprite,box1)){
+							
+							box1.frame = 1;
+							//console.log("Drag the sprite. Overlapping1: true");
+						}
+						else if (!isInside(sprite,box1)){
+							box1.frame = 0;
+							//console.log( "Drag the sprite. Overlapping1: false");
+						}
+						
+						if (isInside(sprite,box2)){
+							
+							box2.frame = 1;
+							//console.log("Drag the sprite. Overlapping2: true");
+						}
+						
+						else if (!isInside(sprite,box2)){
+							box2.frame = 0;
+							//console.log( "Drag the sprite. Overlapping2: false");
+						}
+						if (isInside(sprite,box3)){
+							box3.frame = 1;
+							//console.log( "Drag the sprite. Overlapping3: true");
+						}
+						else if (!isInside(sprite,box3)){
+							box3.frame = 0;
+							//onsole.log( "Drag the sprite. Overlapping3: false");
+						}
+									
+					}
+
+
+					function isInside(object,box){
+						if (object.x > box.x+ 0.01*game.width && object.y>box.y+0.01*game.height && object.x<box.x+box.width-0.01*game.width && object.y<box.y+box.height-0.01*game.height) return true;
+						else return false;
+					}
+					
+					function checkItemType(){
+						
+				
+						//count the Number of the rock/crystal/star  in each box
+						for(var i = 0 ; i <onBox1.total ; i++){
+							
+							if(onBox1.getChildAt(i).key == itemType[0]){
+								countBox1ItemType[0]++;
+							}
+							else if (onBox1.getChildAt(i).key == itemType[1]){
+								countBox1ItemType[1]++;
+							
+							}
+							else if (onBox1.getChildAt(i).key == itemType[2]){
+								countBox1ItemType[2]++;
+							}
+			
+						}
+						
+						console.log( "countBox1ItemType[0] :" + countBox1ItemType[0]);
+						console.log( "countBox1ItemType[1] :" + countBox1ItemType[1]);
+						console.log( "countBox1ItemType[2] :" + countBox1ItemType[2]);
+						
+						
+						for(var i=0; i<onBox2.total ; i++){
+							
+							if(onBox2.getChildAt(i).key == itemType[0]){
+								countBox2ItemType[0]++;
+							}
+							else if (onBox2.getChildAt(i).key == itemType[1]){
+								countBox2ItemType[1]++;
+							
+							}
+							else if (onBox2.getChildAt(i).key == itemType[2]){
+								countBox2ItemType[2]++;
+							}
+						}
+						
+						console.log( "countBox2ItemType[0]:" + countBox2ItemType[0]);
+						console.log( "countBox2ItemType[1] :" + countBox2ItemType[1]);
+						console.log( "countBox2ItemType[2] :" + countBox2ItemType[2]);
+						
+						for(var i=0; i<onBox3.total ; i++){
+							
+							if(onBox3.getChildAt(i).key == itemType[0] ){
+							
+								countBox3ItemType[0]++;
+							}
+							else if (onBox3.getChildAt(i).key == itemType[1]){
+								countBox3ItemType[1]++;
+							
+							}
+							else if (onBox3.getChildAt(i).key == itemType[2]){
+								countBox3ItemType[2]++;
+							}
+						
+						}
+						
+						console.log( "countBox3ItemType[0] :" + countBox3ItemType[0]);
+						console.log( "countBox3ItemType[1] :" + countBox3ItemType[1]);
+						console.log( "countBox3ItemType[2] :" + countBox3ItemType[2]);
+						
+						
+						if 	(	(num_type1 == countBox1ItemType[0] ) && 
+								(num_type2 == countBox2ItemType[1] ) &&
+								(num_type3 == countBox3ItemType[2] ) 
+							)
+							{
+								alert("Well done");
+								attempt = 0;
+								return true;
+							}
+						else{
+							attempt++;
+							alert("Incorrect");
+							console.log("You have tried "+ attempt + " times.");
+						}
+							
+							
+						
+					
+				}
+				
+				function resetItemCount(){
+					
+					for(var i =0; i< countBox1ItemType.length; i++)
+					{
+						countBox1ItemType[i] =0;
+					}
+					for(var i =0; i< countBox2ItemType.length; i++)
+					{
+						countBox2ItemType[i] =0;
+					}
+					for(var i =0; i< countBox3ItemType.length; i++)
+					{
+						countBox3ItemType[i] =0;
+					}
+				}
+				
+				function boxCoordinates(boxArrayX,boxArrayY, box){
+					for (var i =0; i< OBJECT_AMOUNT; i++){
+						
+						boxArrayX[i] = box.x+ 130 *sx+(i%4)* 150 *sx;
+						boxArrayY[i] = box.y+ box.height/2 + Math.floor(i/4)* 50 *sy;
+					}
+				}
+				
+				function shuffle(array) {
+					//Using the Fisher-Yates (Knuth) Shuffle algorithm
+					var currentIndex = array.length, temporaryValue, randomIndex;
+					while (0 !== currentIndex) {
+						randomIndex = Math.floor(Math.random() * currentIndex);
+						currentIndex -= 1;
+						temporaryValue = array[currentIndex];
+						array[currentIndex] = array[randomIndex];
+						array[randomIndex] = temporaryValue;
+					}
+					return array;
+				}
+					
+
+				
+					
+					
+					
+					function render(){
+						
+					}
+					
+					function reset(){
+					
+					}
+				
+				};
+				
+				
+			</script>
+		</body>
+		
+</html>
+
+	
+
+	
+	

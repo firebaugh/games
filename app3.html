@@ -133,7 +133,12 @@
             sprite.frame = 1;
             stat = sprite.z==answer-1;
 
-            if (stat) {promptText.setText(question + ' - You win!'); promptText.x = game.width/2-promptText.width/2;}
+            if (stat) {
+		promptText.setText(question + ' - You win!'); 
+		promptText.x = game.width/2-promptText.width/2;
+		alert("Yayy!");
+		//game.input.mouse.enabled = false;
+		}
             if (!stat) attempts++;
             ros_activityComplete();
         }

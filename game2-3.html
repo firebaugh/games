@@ -1,0 +1,521 @@
+<!doctype html>
+<html>
+	<head>
+		<meta charset="UTF-8" />
+		<title>Organize rocks by color -3</title>
+		<script src="//cdn.jsdelivr.net/phaser/2.5.0/phaser.min.js"></script>
+		<script type="text/javascript" src="http://cdn.robotwebtools.org/EventEmitter2/current/eventemitter2.min.js"></script>
+		<script type="text/javascript" src="http://cdn.robotwebtools.org/roslibjs/current/roslib.min.js"></script>
+		<style>
+        body{
+            width: 100%;
+            height: 100%;
+            padding: 0px;
+            margin: 0px;
+        }
+        </style>
+	</head>
+		
+		<body>
+	
+			<script type = "text/javascript">
+			
+				
+
+			
+				window.onload = function(){
+					const ROCK_AMOUNT = 9;
+					const COLUMNS_PANEL = 3;
+					const SAME_COLOR_AMOUNT = 3;
+					var gameWidth = 1920;
+					var gameHeight = 1080;
+					var game = new Phaser.Game(window.innerWidth, window.innerHeight, Phaser.AUTO, '', { preload: preload, create: create, render: render});
+					var logoBackground;
+					var onPanel;
+					var onbox1;
+					var onbox2;
+					var onbox3;
+					var box1;
+					var box2;
+					var box3;
+
+					var attempt = 0;
+					var sx = window.innerWidth/gameWidth;
+					var sy = window.innerHeight/gameHeight;
+					
+					var objectname = new Array();
+			
+					// create a color class-object array 
+					// Each color has its properties, rockString and boxColor(String) that have the same color
+					//shuffle the array later
+					var color =[ 	{ rockString: "object3", boxColor: "boxOrange"},
+										{ rockString: "object4", boxColor: "boxPink"},
+										{ rockString: "object5", boxColor: "boxBlue"}
+									]
+					
+					shuffle(color);
+					
+					//create variable panel with two coordinates properties
+					var panel = {
+						CoordX : new Array(),
+						CoordY : new Array()
+					}
+					
+					// keep track of the color count using array 
+					// index 0 ==> 1st color;
+					// index 1 ==> 2nd color;
+					// index 2 ==> 3nd color;
+										
+					var countBox1Color = [0,0,0];
+					
+					var countBox2Color = [0,0,0];
+					
+					var countBox3Color = [0,0,0];
+					
+					
+					var numColor1 =0;
+					var numColor2 =0;
+					var numColor3 =0;
+					
+					
+					function preload(){
+					
+						var path_to_assets='assets/';
+						game.load.image('logoBackground', 'assets/Background/ShipInterior.png');
+						game.load.image('controlPanel',path_to_assets+'Items/ControlPanelcrop.png');
+						//game.load.spritesheet('object1',path_to_assets+'Items/Rocks/Moonrock1_sheet.png',610,400,2);
+						//game.load.spritesheet('object2',path_to_assets+'Items/Rocks/Moonrock2_sheet.png',460,360,2);
+						game.load.spritesheet('object3',path_to_assets+'Items/Rocks/Moonrock3_sheet.png',660,360,2);
+						game.load.spritesheet('object4',path_to_assets+'Items/Rocks/Moonrock4_sheet.png',510,410,2);
+						game.load.spritesheet('object5',path_to_assets+'Items/Rocks/Moonrock5_sheet.png',660,360,2);
+						game.load.spritesheet('button',path_to_assets+'Items/Button_sheet.png',288,288,2);
+						game.load.spritesheet('box',path_to_assets+'Items/Box_sheet.png',881,730,2);
+						game.load.spritesheet('boxBlue',path_to_assets+'Items/colorBox/BoxBlue_sheetnew.png',1510,499,2);
+						game.load.spritesheet('boxPink',path_to_assets+'Items/colorBox/BoxPink_sheetnew.png',1510,499,2);
+						game.load.spritesheet('boxOrange',path_to_assets+'Items/colorBox/BoxOrange_sheetnew.png',1510,499,2);
+						
+						
+						game.scale.scaleMode = Phaser.ScaleManager.SHOW_ALL;
+						game.scale.updateLayout();
+						
+						//event listener ???
+						
+					
+					}
+					
+					function create(){
+					
+						logoBackground = game.add.sprite(game.world.centerX, game.world.centerY, 'logoBackground');
+						logoBackground.anchor.setTo(0.5, 0.5);
+						console.log('Game width is '+game.width);
+						console.log('Game height is '+game.height);
+						
+						controlPanel = game.add.sprite(0,0,'controlPanel');
+						controlPanel.scale.setTo(0.8*sx,0.8*sy);
+						controlPanel.x = game.world.centerX - controlPanel.width/2;
+						controlPanel.y = game.world.centerY - controlPanel.height/2;
+						
+						button = game.add.sprite(0,0,'button');
+						button.scale.setTo(0.3*sx);
+						button.x = controlPanel.x+controlPanel.width/2-button.width/2;
+						button.y = controlPanel.y+controlPanel.height-button.height-0.05*game.height;
+						button.frame=0;
+						button.inputEnabled=true;
+						button.events.onInputDown.add(onButtonPress,this);
+						button.events.onInputUp.add(onButtonRelease,this);
+						
+						
+						box1 = game.add.sprite(0,0, color[0].boxColor);
+						// long box is used instead of small box 
+						box1.scale.setTo(0.45*sx,0.2*sy);
+						//box1.anchor.setTo(0.5,0.5);
+						box1.x = controlPanel.x + controlPanel.width  - box1.width - 140*sx;
+						box1.y = controlPanel.y + controlPanel.height/3 - box1.height/3 - button.height - 50 *sx;
+						box1.frame = 0;
+						
+						//Custom properties, CoordX and CoordY, added to object box1
+						box1.CoordX = new Array();
+						box1.CoordY = new Array();
+						console.log('Box1 height is '+box1.height);
+						console.log('Box1 width is '+box1.width);
+						
+						box2 = game.add.sprite(0,0, color[1].boxColor);
+						//box2.anchor.setTo(0.5,0.5);
+						box2.scale.setTo(0.45*sx,0.2*sy);
+						box2.x = controlPanel.x + controlPanel.width  - box2.width - 140*sx;
+						box2.y = controlPanel.y + box1.y + 50*sx;
+						box2.frame = 0;
+						
+						//Custom properties, CoordX and CoordY, added to object box2
+						box2.CoordX = new Array();
+						box2.CoordY = new Array();
+						console.log('Box2 height is '+box2.height);
+						console.log('Box2 width is '+box2.width);
+						
+						box3 = game.add.sprite(0,0, color[2].boxColor);
+						//box3.anchor.setTo(0.5,0.5);
+						box3.scale.setTo(0.45*sx,0.2*sy);
+						box3.x = controlPanel.x + controlPanel.width  - box3.width - 140*sx;;
+						box3.y = controlPanel.y + box2.y+ 50*sx;
+						box3.frame = 0;
+						
+						//Custom properties, CoordX and CoordY, added to object box3
+						box3.CoordX = new Array();
+						box3.CoordY = new Array();
+						console.log('Box2 height is '+box3.height);
+						console.log('Box2 width is '+box3.width);
+						
+						//set up the rock image at the upper left corner
+						upperLHRock1= game.add.sprite(box1.x, box1.y, color[0].rockString);
+						upperLHRock1.scale.setTo(0.1*sx,0.1*sy);
+						
+						upperLHRock2 = game.add.sprite(box2.x, box2.y, color[1].rockString);
+						upperLHRock2.scale.setTo(0.1*sx,0.1*sy);
+						
+						upperLHRock3 = game.add.sprite(box3.x, box3.y, color[2].rockString);
+						upperLHRock3.scale.setTo(0.1*sx,0.1*sy);
+						
+						
+						
+						onPanel = game.add.group();
+						onBox1 = game.add.group();
+						onBox2 = game.add.group();
+						onBox3 = game.add.group();
+						
+						
+						//set a string array called objectname and shuffle them
+						//it is used to generate/ create rock on panel
+						for (var i=0; i< SAME_COLOR_AMOUNT ; i++){
+							objectname[i] = "object3";
+							objectname[i+3] = "object4";
+							objectname[i+6] = "object5";
+							
+						}
+						
+						shuffle(objectname);
+						
+						//create the rock on panel
+						for (var i=0;i<ROCK_AMOUNT;i++){
+							//objectname = "object" + game.rnd.integerInRange(3,5);
+							panel.CoordX[i] = controlPanel.x + 220*sx +(i%COLUMNS_PANEL) * 180 *sx;
+							panel.CoordY[i] = controlPanel.y + controlPanel.height/2 - 120*sy + Math.floor(i/COLUMNS_PANEL) * 100*sy;
+							
+							onPanel.create(panel.CoordX[i], panel.CoordY[i], objectname[i]);
+						}
+						
+						boxCoordinates(box1.CoordX, box1.CoordY,box1);
+						boxCoordinates(box2.CoordX, box2.CoordY,box2);
+						boxCoordinates(box3.CoordX, box3.CoordY,box3);
+						
+						for (var i=0; i<onPanel.total ; i++){
+						
+							switch (onPanel.getChildAt(i).key){
+								
+								case color[0].rockString: // let's say 'object3':
+									numColor1++;
+									break;
+								case color[1].rockString:
+									numColor2++;
+									break;
+								case color[2].rockString:
+									numColor3++;
+									break;
+								
+							}
+						}
+
+						
+						onPanel.forEach(function(object){
+							object.anchor.setTo(0.5,0.5);
+							object.frame=0;
+							object.scale.setTo(0.25*sx);
+							//object.originalPosition = object.position.clone();
+							object.inputEnabled=true;
+							object.input.enableDrag(false,false,false,255,null,controlPanel);
+							object.events.onDragStart.add(onDragStart,this);
+							object.events.onDragStop.add(onDragStop,this);
+							object.events.onDragUpdate.add(onDragUpdate,this);
+							
+						
+						});
+						
+						console.log(numColor1);
+						console.log(numColor2);
+						console.log(numColor3);
+						
+							
+					}
+					function outOfBox(sprite){
+						sprite.loadTexture('box');
+					
+					}
+					
+					
+					function onButtonPress(sprite,pointer){
+						sprite.frame=1;
+						checkColor();
+					}
+					
+					function onButtonRelease(sprite,pointer){
+						sprite.frame=0;
+						resetColorCount();
+					}
+					
+					function onDragStart (sprite, pointer){
+						sprite.frame=1;
+						
+					
+					}
+					
+					function onDragStop (sprite, pointer){
+						box1.frame = 0;
+						box2.frame = 0;
+						box3.frame = 0;
+						sprite.frame = 0;
+						
+						
+						if(onBox1.total < 4 && isInside(sprite,box1) && (onPanel.removeChild(sprite) || onBox2.removeChild(sprite) || onBox3.removeChild(sprite))  ){
+							
+							onBox1.add(sprite);						
+						}
+						else if (!isInside(sprite,box1) && onBox1.removeChild(sprite))
+						{
+							onPanel.add(sprite);
+						}
+						
+						if(onBox2.total < 4 && isInside(sprite,box2 )&& (onPanel.removeChild(sprite) || onBox1.removeChild(sprite) || onBox3.removeChild(sprite))  ){
+							
+							onBox2.add(sprite);						
+						}
+						else if (!isInside(sprite,box2) && onBox2.removeChild(sprite))
+						{
+							onPanel.add(sprite);
+						}
+						
+						if(onBox3.total < 4 && isInside(sprite,box3) && (onPanel.removeChild(sprite) || onBox1.removeChild(sprite) || onBox2.removeChild(sprite))  ){
+							
+							onBox3.add(sprite);						
+						}
+						else if (!isInside(sprite,box3) && onBox3.removeChild(sprite))
+						{
+							onPanel.add(sprite);
+						}
+						
+						console.log("onPanel.total: " + onPanel.total + " onBox1.total: " + onBox1.total + " onBox2.total: " + onBox2.total + " onBox3.total: " + onBox3.total);
+						
+						
+						for (var i = 0; i < onPanel.total; i++)
+						{
+							onPanel.getChildAt(i).x = panel.CoordX[i];
+							onPanel.getChildAt(i).y = panel.CoordY[i];
+						}
+						
+						for (var i = 0; i < onBox1.total; i++)
+						{
+							onBox1.getChildAt(i).x = box1.CoordX[i];
+							onBox1.getChildAt(i).y = box1.CoordY[i];
+						}
+						
+						for (var i = 0; i < onBox2.total; i++)
+						{
+							onBox2.getChildAt(i).x = box2.CoordX[i];
+							onBox2.getChildAt(i).y = box2.CoordY[i];
+						}
+						
+						for (var i = 0; i < onBox3.total; i++)
+						{
+							onBox3.getChildAt(i).x = box3.CoordX[i];
+							onBox3.getChildAt(i).y = box3.CoordY[i];
+						}
+
+						
+					}
+					
+					function onDragUpdate (sprite,pointer){
+						if (isInside(sprite,box1)){
+							
+							box1.frame = 1;
+							//console.log("Drag the sprite. Overlapping1: true");
+						}
+						else if (!isInside(sprite,box1)){
+							box1.frame = 0;
+							//console.log( "Drag the sprite. Overlapping1: false");
+						}
+						
+						if (isInside(sprite,box2)){
+							
+							box2.frame = 1;
+							//console.log("Drag the sprite. Overlapping2: true");
+						}
+						
+						else if (!isInside(sprite,box2)){
+							box2.frame = 0;
+							//console.log( "Drag the sprite. Overlapping2: false");
+						}
+						if (isInside(sprite,box3)){
+							box3.frame = 1;
+							//console.log( "Drag the sprite. Overlapping3: true");
+						}
+						else if (!isInside(sprite,box3)){
+							box3.frame = 0;
+							//onsole.log( "Drag the sprite. Overlapping3: false");
+						}
+									
+					}
+/*					function checkOverlap(spriteA, spriteB) {
+
+						var boundsA = spriteA.getBounds();
+						var boundsB = spriteB.getBounds();
+
+						return Phaser.Rectangle.intersects(boundsA, boundsB);
+					}
+*/
+
+					function isInside(object,box){
+						if (object.x > box.x+ 0.01*game.width && object.y>box.y+0.01*game.height && object.x<box.x+box.width-0.01*game.width && object.y<box.y+box.height-0.01*game.height) return true;
+						else return false;
+					}
+					
+					function checkColor(){
+						
+						//count the Number of the Y/P/LB color rocks in each box
+						for(var i = 0 ; i <onBox1.total ; i++){
+							
+							if(onBox1.getChildAt(i).key == color[0].rockString){
+								countBox1Color[0]++;
+							}
+							else if (onBox1.getChildAt(i).key == color[1].rockString){
+								countBox1Color[1]++;
+							
+							}
+							else if (onBox1.getChildAt(i).key == color[2].rockString){
+								countBox1Color[2]++;
+							}
+
+			
+						}
+						
+						console.log( "box1color[0] :" + countBox1Color[0]);
+						console.log( "box1color[1] :" + countBox1Color[1]);
+						console.log( "box1color[2] :" + countBox1Color[2]);
+						
+						
+						for(var i=0; i<onBox2.total ; i++){
+							
+							if(onBox2.getChildAt(i).key == color[0].rockString){
+								countBox2Color[0]++;
+							}
+							else if (onBox2.getChildAt(i).key == color[1].rockString){
+								countBox2Color[1]++;
+							
+							}
+							else if (onBox2.getChildAt(i).key == color[2].rockString){
+								countBox2Color[2]++;
+							}
+						}
+						
+						console.log( "box2color[0] :" + countBox2Color[0]);
+						console.log( "box2color[1] :" + countBox2Color[1]);
+						console.log( "box2color[2] :" + countBox2Color[2]);
+						
+						for(var i=0; i<onBox3.total ; i++){
+							
+							if(onBox3.getChildAt(i).key == color[0].rockString ){
+							
+								countBox3Color[0]++;
+							}
+							else if (onBox3.getChildAt(i).key == color[1].rockString){
+								countBox3Color[1]++;
+							
+							}
+							else if (onBox3.getChildAt(i).key == color[2].rockString){
+								countBox3Color[2]++;
+							}
+						
+						}
+						
+						console.log( "box3color[0] :" + countBox3Color[0]);
+						console.log( "box3color[1] :" + countBox3Color[1]);
+						console.log( "box3color[2] :" + countBox3Color[2]);
+						
+						
+						if 	(	(numColor1 == countBox1Color[0] ) && 
+								(numColor2 == countBox2Color[1] ) &&
+								(numColor3 == countBox3Color[2] ) 
+							)
+							{
+								alert("Well done");
+								attempt = 0;
+								return true;
+							}
+						else{
+							attempt++;
+							alert("Incorrect");
+							console.log("You have tried "+ attempt + " times.");
+						}
+								
+				}
+				
+				function resetColorCount(){
+					
+					for(var i =0; i< countBox1Color.length; i++)
+					{
+						countBox1Color[i] =0;
+					}
+					for(var i =0; i< countBox2Color.length; i++)
+					{
+						countBox2Color[i] =0;
+					}
+					for(var i =0; i< countBox3Color.length; i++)
+					{
+						countBox3Color[i] =0;
+					}
+				}
+				
+				function boxCoordinates(boxArrayX,boxArrayY, box){
+					for (var i =0; i< ROCK_AMOUNT; i++){
+						
+						boxArrayX[i] = box.x+ 130 *sx+(i%4)* 150 *sx;
+						boxArrayY[i] = box.y+ box.height/2 + Math.floor(i/4)* 50 *sy;
+					}
+				}
+				
+				function shuffle(array) {
+					//Using the Fisher-Yates (Knuth) Shuffle algorithm
+					var currentIndex = array.length, temporaryValue, randomIndex;
+					while (0 !== currentIndex) {
+						randomIndex = Math.floor(Math.random() * currentIndex);
+						currentIndex -= 1;
+						temporaryValue = array[currentIndex];
+						array[currentIndex] = array[randomIndex];
+						array[randomIndex] = temporaryValue;
+					}
+					return array;
+				}
+					
+
+				
+					
+					
+					
+					function render(){
+
+						
+					}
+					
+					function reset(){
+					
+					}
+				
+				};
+				
+				
+			</script>
+		</body>
+		
+</html>
+
+	
+
+	
+	

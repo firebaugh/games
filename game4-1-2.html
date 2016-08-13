@@ -1,0 +1,803 @@
+<!doctype html>
+<html>
+	<head>
+		<meta charset="UTF-8" />
+		<title>Copy the Sequence </title>
+		<script src="//cdn.jsdelivr.net/phaser/2.5.0/phaser.min.js"></script>
+		<script type="text/javascript" src="http://cdn.robotwebtools.org/EventEmitter2/current/eventemitter2.min.js"></script>
+		<script type="text/javascript" src="http://cdn.robotwebtools.org/roslibjs/current/roslib.min.js"></script>
+		<style>
+        body{
+            width: 100%;
+            height: 100%;
+            padding: 0px;
+            margin: 0px;
+        }
+        </style>
+	</head>
+		
+		<body>
+	
+			<script type = "text/javascript">
+			
+				
+			
+				window.onload = function(){
+					const OBJECT_AMOUNT = 9;
+					const COLUMNS_PANEL = 3;
+					const SEQUENCE_AMOUNT =4;
+					
+					var gameWidth = 1920;
+					var gameHeight = 1080;
+					var game = new Phaser.Game(window.innerWidth, window.innerHeight, Phaser.AUTO, '', { preload: preload, create: create, render: render});
+					var logoBackground;
+					var onPanel;
+					var onbox1;
+					var onbox2;
+
+					var box1;
+					var box2;
+					var box3;
+					var box4;
+					var box5;
+					var box6;
+					var box7;
+					var box8;
+					
+
+					var attempt = 0;
+					var sx = window.innerWidth/gameWidth;
+					var sy = window.innerHeight/gameHeight;
+					
+					//set a string array called objectname and shuffle them
+					// tempObj is randomize
+					var tempObj1 = "object" + game.rnd.integerInRange(1,2);
+					var tempObj2 = "object" + game.rnd.integerInRange(3,4);
+					var tempObj3 = "object" + game.rnd.integerInRange(5,6);
+						
+					var objectname  =  ['object1', 'object2', 'object3', 'object4' , 'object5', 'object6', tempObj1, tempObj2, tempObj3];
+					shuffle(objectname);
+					
+					//set up a sequence array
+					var sequenceObj = new Array();
+					
+
+					//create variable panel with two coordinates properties
+					var panel = {
+						CoordX : new Array(),
+						CoordY : new Array()
+					}
+					
+
+					
+					
+					function preload(){
+					
+						var path_to_assets='assets/';
+						game.load.image('logoBackground', 'assets/Background/ShipInterior.png');
+						game.load.image('controlPanel',path_to_assets+'Items/ControlPanelcrop.png');
+						
+						//game.load.spritesheet('object1',path_to_assets+'Items/Rocks/Moonrock1_sheet.png',610,400,2);
+						//game.load.spritesheet('object2',path_to_assets+'Items/Rocks/Moonrock2_sheet.png',460,360,2);
+						game.load.spritesheet('object1',path_to_assets+'Items/Rocks/Moonrock1_sheet.png',610,400,2);
+						game.load.spritesheet('object2',path_to_assets+'Items/Rocks/Moonrock4_sheet.png',510,410,2);
+						game.load.spritesheet('object3',path_to_assets+'Items/Crystals/Crystal5_sheet.png',410,360,2);
+						game.load.spritesheet('object4',path_to_assets+'Items/Crystals/Crystal2_sheet.png',460,510,2);
+						game.load.spritesheet('object5',path_to_assets+'Items/Stars/Star1_sheet.png',410,410,2);
+						game.load.spritesheet('object6',path_to_assets+'Items/Stars/Star2_sheet.png',410,410,2);
+						
+						//game.load.spritesheet('object3',path_to_assets+'Items/Rocks/Moonrock3_sheet.png',660,360,2);
+						//game.load.spritesheet('object4',path_to_assets+'Items/Rocks/Moonrock4_sheet.png',510,410,2);
+						//game.load.spritesheet('object5',path_to_assets+'Items/Rocks/Moonrock5_sheet.png',660,360,2);
+						game.load.spritesheet('button',path_to_assets+'Items/Button_sheet.png',288,288,2);
+						game.load.spritesheet('box',path_to_assets+'Items/Box_sheet.png',881,730,2);
+						//game.load.spritesheet('box',path_to_assets+'Items/BoxLong.png',1500,500,2);
+						game.load.spritesheet('bigBox',path_to_assets+'Items/colorBox/BoxBlue_sheetnew.png',1510,510,2);
+						
+						
+						game.load.spritesheet('test',path_to_assets+'Items/BoxRotatedOver.png',720,871 ,2);
+						
+						game.scale.scaleMode = Phaser.ScaleManager.SHOW_ALL;
+						game.scale.updateLayout();
+						
+						
+						
+						//event listener ???
+						
+					
+					}
+					
+					function create(){
+					
+						
+						
+						logoBackground = game.add.sprite(game.world.centerX, game.world.centerY, 'logoBackground');
+						logoBackground.anchor.setTo(0.5, 0.5);
+						console.log('Game width is '+game.width);
+						console.log('Game height is '+game.height);
+						
+						controlPanel = game.add.sprite(0,0,'controlPanel');
+						controlPanel.scale.setTo(0.8*sx,0.8*sy);
+						controlPanel.x = game.world.centerX - controlPanel.width/2;
+						controlPanel.y = game.world.centerY - controlPanel.height/2;
+						
+						button = game.add.sprite(0,0,'button');
+						button.scale.setTo(0.3*sx);
+						button.x = controlPanel.x+controlPanel.width/2-button.width/2;
+						button.y = controlPanel.y+controlPanel.height-button.height-0.05*game.height;
+						button.frame=0;
+						button.inputEnabled=true;
+						button.events.onInputDown.add(onButtonPress,this);
+						button.events.onInputUp.add(onButtonRelease,this);
+						
+						/*
+						box1/3/5/7 are used to set the sequence
+						box2/4/6/8 are used to create the empty box on the blue rectangle box
+						*/
+						
+						box1 = game.add.sprite(0,0, 'box');
+						box1.scale.setTo(0.18*sx,0.15*sy);
+						//box1.x = controlPanel.x + controlPanel.width  - box1.width - 140*sx;
+						box1.x = controlPanel.x + controlPanel.width/2 -60*sx;
+						//box1.y = controlPanel.y + controlPanel.height/2 - box1.height/2 - button.height - 50 *sx;
+						box1.y = controlPanel.y + controlPanel.height  - button.height - controlPanel.height/2 - box1.height/2 - 50 *sx;
+						box1.frame = 0;
+						box1.visible = false;
+						console.log('Box1 height is '+box1.height);
+						console.log('Box1 width is '+box1.width);			
+
+						rec0 = game.add.sprite(0,0,'bigBox');
+						rec0.scale.setTo(0.488*sx,0.3*sy);
+						rec0.x = box1.x  -40*sx ;
+						rec0.y = box1.y -15*sx;
+						rec0.frame = 0;
+						
+						//second blue rectangle box is created first so that it doesnt cover the empty box2/4/6/8
+						rec1 = game.add.sprite(0,0,'bigBox');
+						rec1.scale.setTo(0.488*sx,0.3*sy);
+						rec1.x = controlPanel.x + controlPanel.width/2 -60*sx  - 40*sx;
+						rec1.y = controlPanel.y + box1.y + 50*sx - 20*sx;
+						rec1.frame = 0;
+						
+						box2 = game.add.sprite(0,0, 'box');
+						box2.scale.setTo(0.18*sx,0.15*sy);
+						//box2.x = controlPanel.x + controlPanel.width  - box2.width - 140*sx;
+						box2.x = controlPanel.x + controlPanel.width/2 -60*sx;
+						box2.y = controlPanel.y + box1.y + 50*sx;
+						box2.frame = 0;
+						console.log('Box2 height is '+box2.height);
+						console.log('Box2 width is '+box2.width);
+						
+						box3 = game.add.sprite(0,0, 'box');
+						box3.scale.setTo(0.18*sx,0.15*sy);
+						box3.x = controlPanel.x +controlPanel.width/2-60*sx + box1.width + 10*sx;
+						//box3.x = controlPanel.x + controlPanel.width  - 2*box3.width - 160*sx;
+						//box3.y = controlPanel.y + controlPanel.height/2 - box3.height/2 - button.height - 50 *sx;
+						box3.y = controlPanel.y + controlPanel.height  - button.height - controlPanel.height/2 - box3.height/2 - 50 *sx;
+						box3.frame = 0;
+						box3.visible=false;
+						console.log('Box3 height is '+box2.height);
+						console.log('Box3 width is '+box2.width);
+						
+						box4 = game.add.sprite(0,0, 'box');
+						box4.scale.setTo(0.18*sx,0.15*sy);
+						//box4.x = controlPanel.x + controlPanel.width  - 2*box4.width - 160*sx;
+						box4.x = controlPanel.x +controlPanel.width/2-60*sx + box1.width + 10*sx;
+						box4.y = controlPanel.y + box3.y + 50*sx;
+						box4.frame = 0;
+						console.log('Box2 height is '+box2.height);
+						console.log('Box2 width is '+box2.width);
+						
+
+						box5 = game.add.sprite(0,0, 'box');
+						box5.scale.setTo(0.18*sx,0.15*sy);
+						//box5.x = controlPanel.x + controlPanel.width  - 3*box5.width - 180*sx;
+						box5.x = controlPanel.x + controlPanel.width/2 -60*sx + box1.width + box3.width +2*10*sx ;
+						box5.y = controlPanel.y + controlPanel.height  - button.height - controlPanel.height/2 - box5.height/2 - 50 *sx;
+						box5.frame = 0;
+						box5.visible = false;
+						console.log('Box5 height is '+box2.height);
+						console.log('Box5 width is '+box2.width);
+						
+						box6 = game.add.sprite(0,0, 'box');
+						box6.scale.setTo(0.18*sx,0.15*sy);
+						//box6.x = controlPanel.x + controlPanel.width  - 3*box6.width - 180*sx;
+						box6.x = controlPanel.x + controlPanel.width/2 -60*sx + box1.width + box3.width +2*10*sx ;
+						box6.y = controlPanel.y + box5.y + 50*sx;
+						box6.frame = 0;
+						console.log('Box2 height is '+box2.height);
+						console.log('Box2 width is '+box2.width);
+						
+						box7 = game.add.sprite(0,0, 'box');
+						box7.scale.setTo(0.18*sx,0.15*sy);
+						//box7.x = controlPanel.x + controlPanel.width  - 4*box7.width - 200*sx;
+						box7.x = controlPanel.x + controlPanel.width/2-60*sx  + box1.width + box3.width + box5.width + 3*10*sx;
+						box7.y = controlPanel.y + controlPanel.height  - button.height - controlPanel.height/2 - box5.height/2 - 50 *sx;
+						box7.frame = 0;
+						box7.visible = false;
+						console.log('Box7 height is '+box2.height);
+						console.log('Box7 width is '+box2.width);
+						
+						box8 = game.add.sprite(0,0, 'box');
+						box8.scale.setTo(0.18*sx,0.15*sy);
+						//box8.x = controlPanel.x + controlPanel.width  - 4*box8.width - 200*sx;
+						box8.x = controlPanel.x + controlPanel.width/2-60*sx  + box1.width + box3.width + box5.width + 3*10*sx;
+						box8.y = controlPanel.y + box7.y + 50*sx;
+						box8.frame = 0;
+						console.log('Box8 height is '+box2.height);
+						console.log('Box8 width is '+box2.width);
+						
+
+						// create groups 
+						onPanel = game.add.group();
+						onBox1 = game.add.group();
+						onBox2 = game.add.group();
+						onBox3 = game.add.group();
+						onBox4 = game.add.group();
+						onBox5 = game.add.group();
+						onBox6 = game.add.group();
+						onBox7 = game.add.group();
+						onBox8 = game.add.group();
+
+
+
+						
+						
+						//generate each object on panel
+						for (var i=0;i< OBJECT_AMOUNT;i++){
+							//objectname = "object" + game.rnd.integerInRange(1,6);
+							panel.CoordX[i] = controlPanel.x + 220*sx +(i%COLUMNS_PANEL) * 180*sx;
+							panel.CoordY[i] = controlPanel.y + controlPanel.height/2 - 120*sy + Math.floor(i/COLUMNS_PANEL) * 100*sy;
+							
+							onPanel.create(panel.CoordX[i], panel.CoordY[i], objectname[i]);
+						}
+						
+
+//						boxCoordinates(box1CoordX, box1CoordY,box1);
+//						boxCoordinates(box2CoordX, box2CoordY,box2);						
+
+					for (var i=0;i< OBJECT_AMOUNT;i++){
+						
+							sequenceObj[i] = objectname[i];
+						}
+				
+						shuffle(sequenceObj);
+						
+							//create the sequence/pattern on box1/3/5/7
+							onBox1.create(box1.x + box1.width/2 , box1.y + box1.height/2 , sequenceObj[0]);
+							onBox3.create(box3.x +box3.width/2  , box3.y + box3.height/2 , sequenceObj[1]);
+							onBox5.create(box5.x +box5.width/2  , box5.y + box5.height/2 , sequenceObj[2]);
+							onBox7.create(box7.x + box7.width/2  , box7.y + box7.height/2 , sequenceObj[3]);
+						
+						
+						onBox1.forEach(function(object){
+							object.anchor.setTo(0.5,0.5);
+							object.frame=0;
+							object.scale.setTo(0.25*sx);
+						});
+						
+						onBox3.forEach(function(object){
+							object.anchor.setTo(0.5,0.5);
+							object.frame=0;
+							object.scale.setTo(0.25*sx);
+						});
+						onBox5.forEach(function(object){
+							object.anchor.setTo(0.5,0.5);
+							object.frame=0;
+							object.scale.setTo(0.25*sx);
+						});
+						onBox7.forEach(function(object){
+							object.anchor.setTo(0.5,0.5);
+							object.frame=0;
+							object.scale.setTo(0.25*sx);
+						});
+						
+				
+						onPanel.forEach(function(object){
+							object.anchor.setTo(0.5,0.5);
+							object.frame=0;
+							object.scale.setTo(0.25*sx);
+							//object.alignIn(controlPanel, Phaser.BOTTOM_LEFT, -20, -20);
+							object.inputEnabled=true;
+							object.input.enableDrag(false,false,false,255,null,controlPanel);
+							//game.add.tween(object).to( { y: 400 }, 3000, Phaser.Easing.Cubic.InOut, true, 0, Number.MAX_VALUE, true);
+							//object.input.enableSnap(120*sx,150*sy,false,true);
+							object.events.onDragStart.add(onDragStart,this);
+							object.events.onDragStop.add(onDragStop,this);
+							object.events.onDragUpdate.add(onDragUpdate,this);
+							
+						
+						});
+						
+													
+					}
+				function outOfBox(sprite){
+						sprite.loadTexture('box');
+					
+					}
+					
+					
+					function onButtonPress(sprite,pointer){
+						sprite.frame=1;
+						checkSequence();
+					}
+
+					
+					function onButtonRelease(sprite,pointer){
+						sprite.frame=0;
+					}
+					
+					function onDragStart (sprite, pointer){
+						sprite.frame=1;
+
+					console.log(sprite.key);
+
+					}
+						
+						
+						
+					
+					function onDragStop (sprite, pointer){
+						//box1.frame = 0;
+						box2.frame = 0;
+						box4.frame = 0;
+						box6.frame = 0;
+						box8.frame = 0;
+						sprite.frame = 0;
+						
+						if ( onBox2.total < 1 && isInside(sprite,box2)   && (onPanel.removeChild(sprite) || onBox4.removeChild(sprite) || onBox6.removeChild(sprite) || onBox8.removeChild(sprite))  )
+						{
+							onBox2.add(sprite);
+
+						}
+						
+						else if ( onBox2.total <1 && !isInside(sprite,box2) && onBox2.removeChild(sprite) ){
+						
+							onPanel.add(sprite);
+						}
+						else if (isInside(sprite,box2) &&isInside(sprite,box4)){
+							//do nothing
+						}
+						
+						else if(onBox2.total == 1 && isInside(sprite, box2)  ){
+						
+							// if something is dragged into box, check the condition and swap them
+							// otherwise set it back to the its location
+							swapWithBox2 (sprite, onBox2.getChildAt(0) ) ;
+							console.log("swap with Box2");
+							
+				
+							
+						}
+						else if ( onBox2.total == 1 && !isInside(sprite,box2) && !isInside(sprite,box4) && !isInside(sprite,box6) && !isInside(sprite,box8) && onBox2.removeChild(sprite) ){
+						
+							onPanel.add(sprite);
+							}
+						else{
+							console.log("something is wrong from box2 message-box or do nothing");
+						}
+						
+						
+						if ( onBox4.total <1 && isInside(sprite,box4) && (onPanel.removeChild(sprite) || onBox2.removeChild(sprite) || onBox6.removeChild(sprite) || onBox8.removeChild(sprite)) ){
+							
+								onBox4.add(sprite);
+
+						}
+							
+						else if (onBox4.total< 1 && !isInside(sprite,box4)&& onBox4.removeChild(sprite)){
+						
+							onPanel.add(sprite);
+
+						
+						}
+						else if ( isInside(sprite,box4) && isInside(sprite,box6)){
+								//do nothing
+						}
+						else if(onBox4.total == 1 && isInside(sprite, box4)  ){
+						
+							// if something is dragged into box, check the condition and swap them
+							// otherwise set it back to the its location
+							swapWithBox4 (sprite, onBox4.getChildAt(0) ) ;
+							console.log("swap with Box4");
+							
+						}
+						else if ( onBox4.total == 1 && !isInside(sprite,box4) && !isInside(sprite,box2) && !isInside(sprite,box6) && !isInside(sprite,box8) && onBox4.removeChild(sprite)  ){
+						
+							onPanel.add(sprite);
+							}
+						else 
+						{
+								console.log("something is wrong from box4 message-box or do nothing");
+						}
+						
+						
+						if ( onBox6.total <1 && isInside(sprite,box6) && (onPanel.removeChild(sprite) || onBox2.removeChild(sprite) || onBox4.removeChild(sprite) || onBox8.removeChild(sprite)) ){
+							
+								onBox6.add(sprite);
+
+						}
+							
+						else if (onBox6.total< 1 && !isInside(sprite,box6)&& onBox6.removeChild(sprite)){
+						
+							onPanel.add(sprite);
+						
+						}
+						else if ( isInside(sprite,box6) && isInside(sprite,box8)){
+								//do nothing
+						}
+						else if(onBox6.total == 1 && isInside(sprite, box6)  ){
+						
+							// if something is dragged into box, check the condition and swap them
+							// otherwise set it back to the its location
+							swapWithBox6 (sprite, onBox6.getChildAt(0) ) ;
+							console.log("swap with Box6");
+										
+						}
+						else if ( onBox6.total == 1 && !isInside(sprite,box6) && !isInside(sprite,box2) && !isInside(sprite,box4) && !isInside(sprite,box8) &&  onBox6.removeChild(sprite) ){
+						
+							onPanel.add(sprite);
+							}
+						else 
+						{
+								console.log("something is wrong from box6 message-box or do nothing");
+						}
+						
+						if ( onBox8.total <1 && isInside(sprite,box8) && (onPanel.removeChild(sprite) || onBox2.removeChild(sprite) || onBox4.removeChild(sprite) || onBox6.removeChild(sprite)) ){
+							
+								onBox8.add(sprite);
+
+						}
+							
+						else if (onBox8.total< 1 && !isInside(sprite,box8)&& onBox8.removeChild(sprite)){
+						
+							onPanel.add(sprite);
+						
+						}
+						else if ( isInside(sprite,box6) && isInside(sprite,box8)){
+								//do nothing
+						}
+						else if(onBox8.total == 1 && isInside(sprite, box8)  ){
+						
+							// if something is dragged into box, check the condition and swap them
+							// otherwise set it back to the its location
+							swapWithBox8 (sprite, onBox8.getChildAt(0) ) ;
+							console.log("swap with Box8");
+										
+						}
+						else if ( onBox8.total == 1 && !isInside(sprite,box8) && !isInside(sprite,box2) && !isInside(sprite,box4) && !isInside(sprite,box6) &&  onBox8.removeChild(sprite) ){
+						
+							onPanel.add(sprite);
+							}
+						else 
+						{
+								console.log("something is wrong from box8 message-box or do nothing");
+						}
+						
+						console.log("onPanel.total: " + onPanel.total );  //+ " onBox1.total : " + onBox1.total + " onBox3.total : " + onBox3.total + "onBox5.total : " + onBox5.total + "onBox7.total : "+ onBox7.total);
+						console.log("onBox2.total : " + onBox2.total + " onBox4.total: " + onBox4.total + " onBox6.total: " + onBox6.total + " onBox8.total: " + onBox8.total );
+						
+						
+						//set the position of objects in thier corresponding box / panel
+						for (var i = 0; i < onPanel.total; i++)
+						{
+							onPanel.getChildAt(i).x = panel.CoordX[i];
+							onPanel.getChildAt(i).y = panel.CoordY[i];
+						}
+						
+						for (var i = 0; i < onBox2.total; i++)
+						{
+							onBox2.getChildAt(i).x =  box2.x + box2.width/2;
+							onBox2.getChildAt(i).y = box2.y + box2.height/2;
+						}
+						
+						for (var i = 0; i < onBox4.total; i++)
+						{
+							onBox4.getChildAt(i).x =  box4.x + box4.width/2;
+							onBox4.getChildAt(i).y = box4.y + box4.height/2;
+						}
+						
+						for (var i = 0; i < onBox6.total; i++)
+						{
+							onBox6.getChildAt(i).x =  box6.x + box6.width/2;
+							onBox6.getChildAt(i).y = box6.y + box6.height/2;
+						}
+						
+						for (var i = 0; i < onBox8.total; i++)
+						{
+							onBox8.getChildAt(i).x =  box8.x + box8.width/2;
+							onBox8.getChildAt(i).y = box8.y + box8.height/2;
+						}
+						
+	
+					}
+					
+					function onDragUpdate (sprite,pointer){
+						if (isInside(sprite,box1)){
+							
+							box1.frame = 1;
+							//console.log("Drag the sprite. Overlapping1: true");
+						}
+						else if (!isInside(sprite,box1)){
+							box1.frame = 0;
+							//console.log( "Drag the sprite. Overlapping1: false");
+						}
+						
+						if (isInside(sprite,box2)){
+							
+							box2.frame = 1;
+							//console.log("Drag the sprite. Overlapping2: true");
+						}
+						
+						else if (!isInside(sprite,box2)){
+							box2.frame = 0;
+							//console.log( "Drag the sprite. Overlapping2: false");
+						}
+						
+						if (isInside(sprite,box4)){
+							
+							box4.frame = 1;
+							//console.log("Drag the sprite. Overlapping4: true");
+						}
+						
+						else if (!isInside(sprite,box4)){
+							box4.frame = 0;
+							//console.log( "Drag the sprite. Overlapping4: false");
+						}
+						
+						if (isInside(sprite,box6)){
+							
+							box6.frame = 1;
+							//console.log("Drag the sprite. Overlapping6: true");
+						}
+						
+						else if (!isInside(sprite,box6)){
+							box6.frame = 0;
+							//console.log( "Drag the sprite. Overlapping6: false");
+						}
+						
+						if (isInside(sprite,box8)){
+							
+							box8.frame = 1;
+							//console.log("Drag the sprite. Overlapping8: true");
+						}
+						
+						else if (!isInside(sprite,box8)){
+							box8.frame = 0;
+							//console.log( "Drag the sprite. Overlapping8: false");
+						}
+			
+					}
+					
+					function swapWithBox2 (sprite, spriteInBox2 ){
+						
+						//if the sprite can be remove from onpanel group
+						// add the sprite to box2 and add spriteInbox2 to onpanel 
+						// remove the first child in box2
+						if (  onPanel.removeChild(sprite) ){
+						
+							onBox2.addChild(sprite);
+							onPanel.addChild(spriteInBox2);
+							onBox2.removeChild(spriteInBox2);
+							
+						}
+						else if (onBox4.removeChild(sprite) ){
+							onBox2.addChild(sprite);
+							onBox4.addChild(spriteInBox2);
+							onBox2.removeChild(spriteInBox2);
+						
+						}
+						else if( onBox6.removeChild(sprite) ){
+							onBox2.addChild(sprite);
+							onBox6.addChild(spriteInBox2);
+							onBox2.removeChild(spriteInBox2);
+						
+						}
+						else if ( onBox8.removeChild(sprite) ){
+							onBox2.addChild(sprite);
+							onBox8.addChild(spriteInBox2);
+							onBox2.removeChild(spriteInBox2);
+						}
+						
+						else{
+							console.log("random error I didnt consider  or do nothing");
+						}
+						
+					}
+						function swapWithBox4 (sprite, spriteInBox4 ){
+						
+							if (  onPanel.removeChild(sprite)  ){
+						
+								onBox4.addChild(sprite);
+								onPanel.addChild(spriteInBox4);
+								onBox4.removeChild(spriteInBox4);
+							
+							}
+							else if (onBox2.removeChild(sprite) ){
+							onBox4.addChild(sprite);
+							onBox2.addChild(spriteInBox4);
+							onBox4.removeChild(spriteInBox4);
+						
+							}
+							else if( onBox6.removeChild(sprite) ){
+								onBox4.addChild(sprite);
+								onBox6.addChild(spriteInBox4);
+								onBox4.removeChild(spriteInBox4);
+							
+							}
+							else if ( onBox8.removeChild(sprite) ){
+								onBox4.addChild(sprite);
+								onBox8.addChild(spriteInBox4);
+								onBox4.removeChild(spriteInBox4);
+							}
+
+							else{
+								console.log("random error I didnt consider  or do nothing");
+							}
+					
+					
+						}
+						
+						function swapWithBox6 (sprite, spriteInBox6 ){
+						
+							if (  onPanel.removeChild(sprite)  ){
+						
+								onBox6.addChild(sprite);
+								onPanel.addChild(spriteInBox6);
+								onBox6.removeChild(spriteInBox6);
+							
+							}
+							else if (onBox2.removeChild(sprite) ){
+							onBox6.addChild(sprite);
+							onBox2.addChild(spriteInBox6);
+							onBox6.removeChild(spriteInBox6);
+						
+							}
+							else if( onBox4.removeChild(sprite) ){
+								onBox6.addChild(sprite);
+								onBox4.addChild(spriteInBox6);
+								onBox6.removeChild(spriteInBox6);
+							
+							}
+							else if ( onBox8.removeChild(sprite) ){
+								onBox6.addChild(sprite);
+								onBox8.addChild(spriteInBox6);
+								onBox6.removeChild(spriteInBox6);
+							}
+							
+							else{
+								console.log("random error I didnt consider  or do nothing");
+							}
+					
+					
+						}
+						
+						function swapWithBox8 (sprite, spriteInBox8 ){
+						
+							if (  onPanel.removeChild(sprite)  ){
+						
+								onBox8.addChild(sprite);
+								onPanel.addChild(spriteInBox8);
+								onBox8.removeChild(spriteInBox8);
+							
+							}
+							else if (onBox2.removeChild(sprite) ){
+							onBox8.addChild(sprite);
+							onBox2.addChild(spriteInBox8);
+							onBox8.removeChild(spriteInBox8);
+						
+							}
+							else if( onBox4.removeChild(sprite) ){
+								onBox8.addChild(sprite);
+								onBox4.addChild(spriteInBox8);
+								onBox8.removeChild(spriteInBox8);
+							
+							}
+							else if ( onBox6.removeChild(sprite) ){
+								onBox8.addChild(sprite);
+								onBox6.addChild(spriteInBox8);
+								onBox8.removeChild(spriteInBox8);
+							}
+							
+							else{
+								console.log("random error I didnt consider  or do nothing");
+							}
+					
+					
+						}
+						
+					function checkOverlapWithRect(spriteA, rectangle) {
+
+						var boundsA = spriteA.getBounds();
+
+						return Phaser.Rectangle.intersects(boundsA, rectangle);
+					}
+					
+					
+/*					
+					function checkOverlapWithObj(spriteA, spriteB) {
+
+						var boundsA = spriteA.getBounds();
+						var boundsB = spriteB.getBounds();
+
+						return Phaser.Rectangle.intersects(boundsA, boundsB);
+					}
+*/
+
+					function isInside(object,box){
+						if (object.x>box.x+0.01*game.width && object.y>box.y+0.01*game.height && object.x<box.x+box.width-0.01*game.width && object.y<box.y+box.height-0.01*game.height) return true;
+						else return false;
+					}
+					
+				function checkSequence(){
+						
+						//if the box are empty, display incorrect message 
+						//avoid the case for children[0] being undefined whenever there is an empty box
+						if(onBox2.children[0] == null || onBox4.children[0] == null || onBox6.children[0] == null || onBox8.children[0] == null){
+							attempt++;
+							alert("Incorrect, please fill up the empty box");
+							console.log("You have tried "+ attempt + " times.");
+						}
+						
+						else if (onBox1.children[0].key == onBox2.children[0].key &&
+							onBox3.children[0].key == onBox4.children[0].key &&
+							onBox5.children[0].key == onBox6.children[0].key &&
+							onBox7.children[0].key == onBox8.children[0].key )
+						{
+							alert("Well done");
+							attempt = 0;
+							return true;
+						}
+						else{
+							
+							attempt++;
+							alert("Incorrect, wrong sequence");
+							console.log("You have tried "+ attempt + " times.");
+						}
+						
+
+
+				}
+				
+				function boxCoordinates(boxArrayX,boxArrayY, box){
+					for (var i =0; i< OBJECT_AMOUNT; i++){
+						
+						boxArrayX[i] = box.x+ 130 *sx+(i%4)* 150*sx;
+						boxArrayY[i] = box.y+ 50 *sy + Math.floor(i/4)* 50 *sy;
+					}
+				}
+				
+				function shuffle(array) {
+					//Using the Fisher-Yates (Knuth) Shuffle algorithm
+					var currentIndex = array.length, temporaryValue, randomIndex;
+					while (0 !== currentIndex) {
+						randomIndex = Math.floor(Math.random() * currentIndex);
+						currentIndex -= 1;
+						temporaryValue = array[currentIndex];
+						array[currentIndex] = array[randomIndex];
+						array[randomIndex] = temporaryValue;
+					}
+					return array;
+				}
+					
+				
+						
+					
+					function render(){
+
+					}
+					
+					function reset(){
+					
+					}
+				
+				};
+				
+			</script>
+		</body>
+		
+</html>
+
+	
+
+	
+	
