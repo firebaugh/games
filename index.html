@@ -2,10 +2,13 @@
 <html>
     <head>
         <meta charset="UTF-8" />
-        <title>Expeditions: Move by amount!</title>
-        <script src="//cdn.jsdelivr.net/phaser/2.5.0/phaser.min.js"></script>
+        <title>Expeditions: USC Space Games</title>
+        <script type="text/javascript" src="http://cdn.jsdelivr.net/phaser/2.5.0/phaser.min.js"></script>
         <script type="text/javascript" src="http://cdn.robotwebtools.org/EventEmitter2/current/eventemitter2.min.js"></script>
         <script type="text/javascript" src="http://cdn.robotwebtools.org/roslibjs/current/roslib.min.js"></script>
+       
+        <script type="text/javascript" src="SARGame.js"></script>
+
         <style>
         body{
             width: 100%;
@@ -14,379 +17,225 @@
             margin: 0px;
         }
         </style>
+
     </head>
+
     <body>
 
     <script type="text/javascript">
     
-    const ROCK_AMOUNT = 10;
-    const COLUMNS_PANEL = 4;
-    const COLUMNS_BOX = 4;
+    var url = 'ws://localhost:9090';
 
     window.onload = function() {
-    	
-        var gameWidth = 1920;
-        var gameHeight = 1080;
-        var game = new Phaser.Game(window.innerWidth, window.innerHeight, Phaser.AUTO, '', { preload: preload, create: create,  render:render });
-  
-	
-		var onPanel;
-		var onBox;
-        var box;
-		var logo;
-		var button;
-		var controlPanel;
-        var count=0;
-        var scoreText;
-        var promptText;
-        var target,attempts=1,stat=false;
-        var sx = window.innerWidth/gameWidth;
-        var sy = window.innerHeight/gameHeight;
 
-        var panel = {
-						CoordX : new Array(),
-						CoordY : new Array()
-					}
-
+        var loading = true;
+        var game = new SpaceGame(url);
+        var activities = {};
+        
         var ros = new ROSLIB.Ros({
-            //url : 'ws://localhost:9090'
-            url : 'ws://192.168.7.191:9090'
-        });
-
-        var activity_status = new ROSLIB.Topic({
+            url : url
+	});
+        
+        var game_command = new ROSLIB.Topic({
             ros : ros,
-            name : '/activity_status',
-            messageType : 'comms/activity_status'
+            name : '/sar/game_command',
+            messageType : 'sar_game_command_msgs/GameCommand' 
         });
 
+        game_command.subscribe( message => {
+                switch(message.command){
+                
+                case GameCommands.START:
+                    console.log('Received game START message for ' + 
+                        Object.getOwnPropertyNames(Games)[message.game]);
+                    
+                    // If loading, then start game
+                    if (loading) {
+                        switch(message.game) {
+                        
+                        case Games.GALACTIC_TRAVELER:
+                            loading = false;
+                            if (Object.keys(activities).length < 1) {
+                                activities = genGalacticTraveler(message.level);
+                                game.end();
+                                game = new Activity1(url, activities["Activity1"]);
+                                //delete activities["Activity1"];
+                            }
+                            // still playing
+                            else {
+                                console.log('FAILED TO START Galactic Traveler game. Already playing!')
+                            }
+                        break;
+                        
+                        case Games.SPACESHIP_TIDYUP:
+                            loading = false;
+                            game.end();
+                            if (activities.length < 1) {
+                                activities = genSpaceshipTidyUp(message.level);
+                                game.end();
+                                game = new Activity6(url, activities["Activity6"]);
+                                //delete activities["Activity6"];
+                            }
+                            // still playing
+                            else {
+                                console.log('FAILED TO START Spaceship Tidy-Up game. Already playing!')
+                            }
+                        break;
+                        
+                        case Games.ALIEN_CODES:
+                            loading = false;
+                            game.end();
+                            // TODO implement Alien Codes class
+                        break;
+                         
+                        default:
+                        break; 
+                        } 
+                    }
+                break;
+
+                case GameCommands.END:
+                    console.log('Received game END message for ' + 
+                        Object.getOwnPropertyNames(Games)[message.game]);
+                    
+                    switch(message.game) {
+                    
+                    case Games.GALACTIC_TRAVELER:
+                    case Games.SPACESHIP_TIDYUP:
+                    case Games.ALIEN_CODES:
+                        // load new space game
+                        loading = true;
+                        game.end();
+                        game = new SpaceGame(url);
+                    break;
+                         
+                    default:
+                    break; 
+                    } 
+                break;
+                
+                default:
+                break;
+            }
+        });
+
+        /* Robot States
+        this.Games = Object.freeze({STORYTELLING:0, ROCKET_BARRIER:1, OUTERSPACE:2});
+        this.GameCommands = Object.freeze({START:0, CONTINUE:1, PAUSE:2, END:3, WAIT_FOR_RESPONSE:4, SKIP_RESPONSE:5});
+        this.robot_state_msg = null;
+        
+        this.robot_state = new ROSLIB.Topic({
+            ros : this.ros,
+            name : '/sar/robot_state',
+            messageType : 'sar_robot_state_msgs/GameCommand' 
+        });
+
+        this.game_command.subscribe( function(message) {
+            console.log('Received COMMAND=' + message.command + ' for GAME=' + message.game);
+            this.game_command_msg = message;
+        });*/
+ 
+
+        // PUBLISHERS
+        // Game States
+        var game_state = new ROSLIB.Topic({
+            ros : ros,
+            name : '/sar/game_state',
+            messageType : 'sar_game_command_msgs/GameState' 
+        });
+        // Robot Commands
         var robot_command = new ROSLIB.Topic({
             ros : ros,
-            name : '/robot_command',
+            name : '/sar/robot_command',
             messageType : 'sar_robot_command_msgs/RobotCommand' 
         });
 
-        function preload () {
 
-            var path_to_assets='assets/';
-
-	//logo is the background image 
-	//control panel is the area where moonrocks are located
-
-            game.load.image('logo', 'assets/Background/ShipInterior.png');
-            game.load.image('controlPanel',path_to_assets+'Items/ControlPanelcrop.png');
-
-            game.load.spritesheet('object1',path_to_assets+'Items/Rocks/Moonrock1_sheet.png',610,400,2);
-            game.load.spritesheet('object2',path_to_assets+'Items/Rocks/Moonrock2_sheet.png',460,360,2);
-            game.load.spritesheet('object3',path_to_assets+'Items/Rocks/Moonrock3_sheet.png',660,360,2);
-            game.load.spritesheet('object4',path_to_assets+'Items/Rocks/Moonrock4_sheet.png',510,410,2);
-            game.load.spritesheet('object5',path_to_assets+'Items/Rocks/Moonrock5_sheet.png',660,360,2);
-            game.load.spritesheet('button',path_to_assets+'Items/Button_sheet.png',288,288,2);
-            game.load.spritesheet('box',path_to_assets+'Items/Box_sheet.png',881,730,2);
-/*
-            game.scale.scaleMode = Phaser.ScaleManager.SHOW_ALL;
-            game.scale.updateLayout();
-*/
+        // ROS CONNECTION INFO
+        ros.on('connection', function() {
+            console.log('Connected to websocket server.');
+        });
+        ros.on('error', function(error) {
+            console.log('Error connecting to websocket server: ', error);
+        });
+        ros.on('close', function() {
+            console.log('Connection to websocket server closed.');
+        });
 
 
-            window.addEventListener('resize', function(event){resizeGame();});
-            var resizeGame = function () { game.scale.scaleMode = Phaser.ScaleManager.SHOW_ALL;  game.scale.updateLayout();}
-
-            ros.on('connection', function() {
-                console.log('Connected to websocket server.');
-            });
-
-            ros.on('error', function(error) {
-                console.log('Error connecting to websocket server: ', error);
-            });
-
-            ros.on('close', function() {
-                console.log('Connection to websocket server closed.');
-            });
-
-// Number of moonrocks needed to be in box randomly generated
-            target = game.rnd.integerInRange(1,10);
-
-            var log_start = new ROSLIB.Message({
-                header: {
-                    frame_id: '0'
-                },
-                message_type: "Activity Started",
-                activity_name: "MoveByName",
-                attempts: attempts,
-                target: target
-            });
-            activity_status.publish(log_start);
-
-            var do_start = new ROSLIB.Message({
-                header: {
-                    frame_id: '1'
-                },
-                command: 2,
-                id: 'MoveByName_Intro_EN',
-                properties: '<wakeup> I want to bring moon rocks home to show my friends. Will you help me pack some?'
-            });
-            robot_command.publish(do_start);
-
-            do_start.id = 'MoveByName_'+target+'_EN';
-            do_start.properties = 'Put '+target+' moon rocks into the box.';
-            robot_command.publish(do_start);
-        }
-
-
-        function create () {
-		
-// background image is displayed
-            logo = game.add.sprite(game.world.centerX, game.world.centerY, 'logo');
-//  Moves the image anchor to the middle, so it centers inside the game properly
-            logo.anchor.setTo(0.5, 0.5);
-            console.log('Game width is'+ game.width);
-            console.log('Game height is'+ game.height);
-
-// controlPanel where moonrock located image is created on screen
-            controlPanel = game.add.sprite(0,0,'controlPanel');
-            controlPanel.scale.setTo(0.8*sx,0.8*sy);
-            controlPanel.x = game.world.centerX - controlPanel.width/2;
-            controlPanel.y = game.world.centerY - controlPanel.height/2;
-
-
-//button image is loaded
-            button = game.add.sprite(controlPanel.x+controlPanel.width/2,controlPanel.y+controlPanel.height-200,'button');
-            button.scale.setTo(0.3);
-            button.x = controlPanel.x+controlPanel.width/2-button.width/2;
-            button.y = controlPanel.y+controlPanel.height-button.height-0.05*game.height;
-//button frame 
-            button.frame=0;
-//Enables all kind of input actions on this image (click, etc)
-            button.inputEnabled=true;
-//onButtonPress function
-            button.events.onInputDown.add(onButtonPress,this);
-            button.events.onInputUp.add(onButtonRelease,this);
-
-            box = game.add.sprite(0,0, 'box');
-            box.scale.setTo(0.6*sx,0.8*sy);
-            box.x = controlPanel.x + controlPanel.width - box.width - 130*sx;
-            box.y = controlPanel.y + 80*sx;
-            box.inputEnabled=true;
-            box.frame = 0;
-			
-			//Custom properties, CoordX and CoordY, added to object box1
-			box.CoordX = new Array();
-			box.CoordY = new Array();
-
-            console.log('Box height is '+box.height);
-            console.log('Box width is '+box.width);
-
-            console.log('cp width and height are '+controlPanel.width+'x'+controlPanel.height);
-
-			onPanel=game.add.group();
-			onBox=game.add.group();
-
-			
-		for (var i=0;i<ROCK_AMOUNT;i++){
-		
-                objectname = "object" + game.rnd.integerInRange(1,5);
-				panel.CoordX[i] = controlPanel.x+220*sx+(i%COLUMNS_PANEL)*150*sx;
-				panel.CoordY[i] = controlPanel.y+130*sy+Math.floor(i/COLUMNS_PANEL)*150*sy;
-				
-				onPanel.create(panel.CoordX[i], panel.CoordY[i], objectname);
-		}
-		
-		// set the rocks coordinate/ position in the box
-		boxCoordinates();
-
-            onPanel.forEach(function(object){
-                object.anchor.setTo(0.5,0.5);
-                object.frame=0;
-                object.scale.setTo(0.25*sx);
-				//object.originalPosition = object.position.clone();
-				//object.alignIn(controlPanel, Phaser.BOTTOM_LEFT, -20, -20);
-                object.inputEnabled=true;
-                object.input.enableDrag(false,false,false,255,null,controlPanel);
-				//object.input.enableSnap(130 *sx,150 *sy,false,true);
-                object.events.onDragStart.add(onDragStart,this);
-                object.events.onDragStop.add(onDragStop,this);
-                object.events.onDragUpdate.add(onDragUpdate,this);
-                
-            });
-
-		
-            scoreText = game.add.text(game.width/2,0.1*game.height,'Count: 0',{fontSize:'24px',fill:'#000'});
-            scoreText.x=game.width/2-scoreText.width/2;
-
-            promptText = game.add.text(game.width/2,0.03*game.height,'Please move moonrocks into the box',{fontSize:'24px',fill:'#fff'});
-            promptText.x = game.width/2-promptText.width/2;
-            var question = 'Please move ' + target + ' moonrocks into the box';
-            promptText.setText(question);
-
-
-        }
+        var random_level = min => { return Math.random() * 2 + min; };
         
-        function boxCoordinates() {
-        	for (var i = 0; i < ROCK_AMOUNT; i++)
-			{
-				box.CoordX[i] = controlPanel.x + 960*sx + i%3*150*sx;
-				box.CoordY[i] = controlPanel.y + 160*sy + Math.floor(i/3)*100*sy;
-			}
-		}
-
-        function outOfBox(sprite){
-            sprite.loadTexture('box');
-        }
-
-        function onButtonPress(sprite,pointer){
-            sprite.frame=1;
-            stat = countRocks();
-            if (!stat[0]) attempts++;
-
-            var log_complete = new ROSLIB.Message({
-                header: {
-                    frame_id: '1'
-                },
-                message_type : "Activity Completed",
-                activity_name : "MoveByName",
-                target: target,
-                attempts: attempts,
-                status: stat[0]
-            });
-            activity_status.publish(log_complete);
-
-            var do_complete = new ROSLIB.Message({
-                header: {
-                    frame_id: '1'
-                },
-                command: 2
-            });
-
-            if (stat[0]){
-                do_complete.id = "Congrat_"+game.rnd.integerInRange(1,6)+"_EN";
-                do_complete.properties = "Great job!";
+        /* 
+         * Galactic Traveler
+         * -----------------
+         */
+        function genGalacticTraveler(level) {
+            switch(level){
+                case 1:
+                    return {
+                        "Activity1": random_level(1),
+                        "Activity2": random_level(1),
+                        "Activity3": 5,
+                        "Activity4": random_level(1),
+                        "Activity5": 2
+                    };
+                case 2:
+                    return {
+                        "Activity1": random_level(4),
+                        "Activity2": random_level(4),
+                        "Activity3": 3,
+                        "Activity4": random_level(4),
+                        "Activity5": 4
+                    };
+                case 3:
+                     return {
+                        "Activity1": random_level(7),
+                        "Activity2": random_level(7),
+                        "Activity3": 1,
+                        "Activity4": random_level(7),
+                        "Activity5": 6
+                    };
+                default:
+                    console.log(this.level+" invalid level for Galactic Traveler. Choose from levels 1-3.");
+                    return {};
             }
-            else {
-                if (stat[1] == 'less') {
-                    do_complete.id = "too-few-"+game.rnd.integerInRange(1,3)+"_EN";
-                    do_complete.properties = "Do we need more?";
-                }
-                else if (stat[1] == 'more') {
-                    do_complete.id = "too-many-"+game.rnd.integerInRange(1,3)+"_EN";
-                    do_complete.properties = "Is that too many?";
-                }
+        }
+
+        /*
+         * Spaceship Tidy-Up
+         * -----------------
+         */
+        function genSpaceshipTidyUp(level) {
+            switch(level){
+                case 1:
+                    return {
+                        "Activity6": random_level(1),
+                        "Activity7": 1,
+                        "Activity8": 1,
+                        "Activity9": 1,
+                        "Activity10": 1
+                    };
+                case 2:
+                    return {
+                        "Activity6": random_level(4),
+                        "Activity7": 2,
+                        "Activity8": 2,
+                        "Activity9": 2,
+                        "Activity10": 2
+                    };
+                case 3:
+                     return {
+                        "Activity6": random_level(7),
+                        "Activity7": 3,
+                        "Activity8": 3,
+                        "Activity9": 3,
+                        "Activity10": 3
+                    };
+                default:
+                    console.log(this.level+" invalid level for Spaceship Tidy-Up. Choose from levels 1-3.");
+                    return {};
             }
-            robot_command.publish(do_complete);
         }
-
-        function onButtonRelease(sprite,pointer){
-            sprite.frame=0;
-        }
-
-        function onDragStart(sprite,pointer){
-            sprite.frame=1;
-        }
-
-        function onDragStop(sprite,pointer){
-            sprite.frame=0;
-            box.frame = 0;
-            			
-            	if (isInside(sprite) && onPanel.removeChild(sprite))
-				{
-					onBox.add(sprite);
-				}
-				else if (!isInside(sprite) && onBox.removeChild(sprite))
-				{
-					onPanel.add(sprite);
-				}
-				console.log("onPanel.total: " + onPanel.total + " onBox.total: " + onBox.total);
-			
-			//Reorders the rocks on the Panel
-			for (var i = 0; i < onPanel.total; i++)
-			{
-				onPanel.getChildAt(i).x = panel.CoordX[i];
-				onPanel.getChildAt(i).y = panel.CoordY[i];
-			}
-			
-			//Reorders the rocks on the Box
-			for (var i = 0; i < onBox.total; i++)
-			{
-				onBox.getChildAt(i).x = box.CoordX[i];
-				onBox.getChildAt(i).y = box.CoordY[i];
-			}
-
-
-        }
-
-        function onDragUpdate(sprite,pointer){
-            if (isInside(sprite)) box.frame = 1;
-            else if (!isInside(sprite)){
-				box.frame = 0;
-		
-			}
-        }
-
-        
-
-
-
-
-        function isInside(object){
-            if (object.x > box.x+0.01*game.width && object.y > (box.y +0.01*game.height) && object.x < box.x+box.width-0.01*game.width && object.y < box.y+box.height-0.01*game.height) return true;
-            else return false;
-        }
-
-        function countRocks(){
-            //count = 0;
-			//make use of total properties of onBox group
-            count = onBox.total;
-            console.log("Count in box! : " + onBox.total);
-            
-/*            onBox.forEach(function(object){
-                if (isInside(object)){
-                    console.log("Dropped inside the box!");
-                    count++;
-                }
-            });
-            
-*/
-            scoreText.setText('Count: '+count);
-            if (count==target){
-		//return [true, ""];
-		alert('Well done!'); 
-		//disable the drag properties
-		onBox.forEach(function(object){object.input.draggable = false;});
-		onPanel.forEach(function(object){object.input.draggable = false;});
-		//game.input.mouse.enabled = false;
-		return true;}
-
-            else return [false,(count<target)?"less":"more"];
-
-        }
-	function update(){
-
-	}
-
-	function render(){
-	
-     }
-
-       function reset(){
-
-
-        }
-
-
-        function shuffle(array) {
-            //Using the Fisher-Yates (Knuth) Shuffle algorithm
-            var currentIndex = array.length, temporaryValue, randomIndex;
-            while (0 !== currentIndex) {
-                randomIndex = Math.floor(Math.random() * currentIndex);
-                currentIndex -= 1;
-                temporaryValue = array[currentIndex];
-                array[currentIndex] = array[randomIndex];
-                array[randomIndex] = temporaryValue;
-            }
-            return array;
-        }
-
-
-
     };
 
     </script>
